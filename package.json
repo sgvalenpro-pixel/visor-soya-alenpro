@@ -1,0 +1,12 @@
+{
+  "name": "visor-soya-recolector",
+  "version": "1.0.0",
+  "description": "Recolector de mercado de soya para ALEN+PRO",
+  "main": "recolector.js",
+  "scripts": {
+    "start": "node recolector.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

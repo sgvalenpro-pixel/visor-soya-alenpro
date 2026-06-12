@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visor Global de Soya · ALEN+PRO</title>
+<style>
+  :root{
+    --bg:#121310;--panel:#1b1d18;--panel-2:#22251e;--line:#33362c;
+    --ink:#e8e6dc;--ink-dim:#9a9a8c;--ink-faint:#6b6b5e;
+    --amber:#f5c518;--amber-dim:#8a7110;--up:#5ecb6f;--down:#e8645a;
+    --mono:'Courier New', ui-monospace, Menlo, Consolas, monospace;
+    --sans:Arial, Helvetica, sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100vh}
+  header{border-bottom:2px solid var(--amber);background:linear-gradient(180deg,#16170f 0%, #121310 100%);
+    padding:18px 24px 14px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .brand{display:flex;align-items:baseline;gap:14px}
+  .brand h1{font-family:'Arial Black',Arial,sans-serif;font-size:22px;letter-spacing:.5px;color:var(--ink)}
+  .brand h1 span{color:var(--amber)}
+  .brand .sub{font-size:11px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:2px}
+  .hdr-right{display:flex;align-items:center;gap:12px}
+  #last-update{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+  .btn{background:var(--amber);color:#121310;border:none;font-family:'Arial Black',Arial,sans-serif;
+    font-size:12px;padding:9px 16px;cursor:pointer;letter-spacing:.5px;border-radius:2px}
+  .btn:hover{background:#ffd84d}
+  .btn:disabled{background:var(--amber-dim);cursor:wait;color:#3a3a30}
+  .btn-ghost{background:transparent;color:var(--amber);border:1px solid var(--line);
+    font-family:var(--sans);font-weight:bold;font-size:11px;padding:5px 10px;cursor:pointer;border-radius:2px}
+  .btn-ghost:hover{border-color:var(--amber)}
+  #ticker{border-bottom:1px solid var(--line);background:#0d0e0b;font-family:var(--mono);font-size:12px;
+    padding:8px 24px;display:flex;gap:28px;flex-wrap:wrap;min-height:34px;color:var(--ink-dim)}
+  #ticker b{color:var(--ink)} #ticker .u{color:var(--up)} #ticker .d{color:var(--down)}
+  main{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:18px 24px 40px;max-width:1500px;margin:0 auto}
+  @media(max-width:980px){main{grid-template-columns:1fr}}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:3px;display:flex;flex-direction:column;min-height:220px}
+  section.wide{grid-column:1/-1}
+  .sec-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
+    border-bottom:1px solid var(--line);background:var(--panel-2)}
+  .sec-head h2{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:var(--amber);font-family:'Arial Black',Arial,sans-serif}
+  .sec-head .flag{margin-right:7px;font-size:13px}
+  .sec-body{padding:14px;flex:1;font-size:13px;line-height:1.55}
+  .loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--ink-faint);padding:30px 0;font-size:12px}
+  .spinner{width:22px;height:22px;border:2px solid var(--line);border-top-color:var(--amber);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .err{color:var(--down);font-size:12px;padding:18px;text-align:center}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px}
+  th{font-family:var(--sans);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-faint);text-align:right;padding:4px 8px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:7px 8px;text-align:right;border-bottom:1px solid #232620}
+  tr:last-child td{border-bottom:none}
+  td.name{color:var(--ink);font-weight:bold}
+  .u{color:var(--up)} .d{color:var(--down)}
+  .note{font-size:11px;color:var(--ink-dim);margin-top:10px;border-left:2px solid var(--amber);padding-left:9px}
+  .balance-block h3{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-dim);
+    margin:14px 0 5px;padding-bottom:3px;border-bottom:1px dashed var(--line)}
+  .balance-block h3:first-child{margin-top:0}
+  .balance-block p{margin-bottom:6px;color:var(--ink)}
+  .tag{display:inline-block;font-size:10px;font-family:var(--mono);border:1px solid var(--line);color:var(--ink-dim);padding:1px 7px;border-radius:10px;margin:2px 4px 2px 0}
+  .tag.alcista{border-color:var(--up);color:var(--up)}
+  .tag.bajista{border-color:var(--down);color:var(--down)}
+  .tag.neutral{border-color:var(--amber-dim);color:var(--amber)}
+  .news-item{padding:9px 0;border-bottom:1px solid #232620}
+  .news-item:last-child{border-bottom:none}
+  .news-item .meta{font-family:var(--mono);font-size:10px;color:var(--ink-faint);margin-bottom:2px}
+  .news-item .meta .src{color:var(--amber)}
+  .news-item .headline{font-weight:bold;color:var(--ink)}
+  .news-item .body{font-size:12px;color:var(--ink-dim);margin-top:2px}
+  footer{padding:14px 24px 28px;font-size:10px;color:var(--ink-faint);text-align:center;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>VISOR<span>+</span>SOYA GLOBAL</h1>
+    <div class="sub">EE.UU. · Argentina · Brasil — Inteligencia de mercado ALEN+PRO</div>
+  </div>
+  <div class="hdr-right">
+    <span id="last-update">cargando…</span>
+    <button class="btn" id="refresh-all" onclick="loadSnapshot()">ACTUALIZAR</button>
+  </div>
+</header>
+
+<div id="ticker"><span style="color:var(--ink-faint)">Cargando cinta de precios…</span></div>
+
+<main>
+  <section id="sec-cbot">
+    <div class="sec-head"><h2><span class="flag">🇺🇸</span>CBOT — Chicago</h2></div>
+    <div class="sec-body" id="body-cbot"></div>
+  </section>
+  <section id="sec-arg">
+    <div class="sec-head"><h2><span class="flag">🇦🇷</span>Argentina — Rosario / MATBA</h2></div>
+    <div class="sec-body" id="body-arg"></div>
+  </section>
+  <section id="sec-bra">
+    <div class="sec-head"><h2><span class="flag">🇧🇷</span>Brasil — CEPEA / Paranaguá</h2></div>
+    <div class="sec-body" id="body-bra"></div>
+  </section>
+  <section id="sec-news">
+    <div class="sec-head"><h2><span class="flag">📰</span>Noticias y comentarios</h2></div>
+    <div class="sec-body" id="body-news"></div>
+  </section>
+  <section class="wide" id="sec-balance">
+    <div class="sec-head"><h2><span class="flag">🧭</span>Balance quincenal — estilo analista USSEC / USSOY</h2></div>
+    <div class="sec-body" id="body-balance"></div>
+  </section>
+</main>
+
+<footer>
+  Datos recolectados automáticamente 2 veces al día (apertura y cierre de CBOT) y almacenados en Firebase.
+  Fuentes: Barchart, CME, BCR, CEPEA, USDA, USSEC y prensa especializada. Valores referenciales — verificar antes
+  de decisiones de compra. ALEN+PRO · Pereira, Colombia.
+</footer>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN — edita esta línea con la URL de tu Firebase.
+   El visor solo LEE el snapshot que escribe el recolector.
+   Requiere que la regla de lectura de /mercado-soya/latest
+   esté abierta (ver README).
+   ============================================================ */
+const FIREBASE_DB_URL = "https://TU-PROYECTO-default-rtdb.firebaseio.com";
+
+/* ---------- helpers ---------- */
+function setLoadingAll(msg){
+  ["cbot","arg","bra","news","balance"].forEach(id=>{
+    document.getElementById("body-"+id).innerHTML =
+      `<div class="loading"><div class="spinner"></div>${msg}</div>`;
+  });
+}
+function sectionError(id,msg){
+  document.getElementById("body-"+id).innerHTML = `<div class="err">⚠ ${msg}</div>`;
+}
+function chg(v,pct){
+  if(v===null||v===undefined||isNaN(v)) return `<td>—</td>`;
+  const cls=v>=0?"u":"d", sign=v>=0?"+":"";
+  const p=(pct!==undefined&&pct!==null&&!isNaN(pct))?` (${sign}${Number(pct).toFixed(2)}%)`:"";
+  return `<td class="${cls}">${sign}${Number(v).toFixed(2)}${p}</td>`;
+}
+function esc(s){return String(s??"").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+let tickerData={};
+
+/* ---------- render de cada sección a partir del snapshot ---------- */
+function renderCBOT(d){
+  if(!d||d.error){ sectionError("cbot","Sin datos de CBOT en el último snapshot."); return; }
+  tickerData.cbot=d;
+  document.getElementById("body-cbot").innerHTML=`
+    <table>
+      <tr><th>Producto</th><th>Mes</th><th>Último</th><th>Cambio</th></tr>
+      <tr><td class="name">Frijol soya ZS</td><td>${esc(d.soybean.month)}</td><td>${Number(d.soybean.price).toFixed(2)} ¢/bu</td>${chg(d.soybean.change,d.soybean.pct)}</tr>
+      <tr><td class="name">Torta de soya ZM</td><td>${esc(d.meal.month)}</td><td>${Number(d.meal.price).toFixed(2)} USD/st</td>${chg(d.meal.change,d.meal.pct)}</tr>
+      <tr><td class="name">Aceite ZL</td><td>${esc(d.oil.month)}</td><td>${Number(d.oil.price).toFixed(2)} ¢/lb</td>${chg(d.oil.change,d.oil.pct)}</tr>
+    </table>
+    <div class="note">${esc(d.comment)}</div>`;
+}
+function renderARG(d){
+  if(!d||d.error){ sectionError("arg","Sin datos de Argentina en el último snapshot."); return; }
+  tickerData.arg=d;
+  let rows=`<table><tr><th>Referencia</th><th>Valor</th></tr>`;
+  if(d.pizarra_ars) rows+=`<tr><td class="name">Pizarra Rosario</td><td>$ ${Number(d.pizarra_ars).toLocaleString("es-AR")} ARS/t</td></tr>`;
+  if(d.pizarra_usd) rows+=`<tr><td class="name">Disponible (USD)</td><td>${Number(d.pizarra_usd).toFixed(1)} USD/t</td></tr>`;
+  if(d.matba&&d.matba.price_usd) rows+=`<tr><td class="name">MATBA ${esc(d.matba.position||"")}</td><td>${Number(d.matba.price_usd).toFixed(1)} USD/t</td></tr>`;
+  rows+=`</table>`;
+  document.getElementById("body-arg").innerHTML=rows+
+    `<div class="note">${esc(d.campo||"")}${d.politica?"<br><br>🏛 "+esc(d.politica):""}</div>`;
+}
+function renderBRA(d){
+  if(!d||d.error){ sectionError("bra","Sin datos de Brasil en el último snapshot."); return; }
+  tickerData.bra=d;
+  let rows=`<table><tr><th>Referencia</th><th>Valor</th></tr>`;
+  if(d.cepea_brl_saca){
+    const v=d.cepea_var_pct;
+    const vtxt=(v!==null&&v!==undefined)?` <span class="${v>=0?'u':'d'}">(${v>=0?'+':''}${Number(v).toFixed(2)}%)</span>`:"";
+    rows+=`<tr><td class="name">CEPEA Paranaguá</td><td>R$ ${Number(d.cepea_brl_saca).toFixed(2)} /saca 60kg${vtxt}</td></tr>`;
+  }
+  if(d.premio) rows+=`<tr><td class="name">Premio FOB Paranaguá</td><td>${esc(d.premio)}</td></tr>`;
+  if(d.usdbrl) rows+=`<tr><td class="name">USD/BRL</td><td>${Number(d.usdbrl).toFixed(2)}</td></tr>`;
+  rows+=`</table>`;
+  document.getElementById("body-bra").innerHTML=rows+`<div class="note">${esc(d.campo||"")}</div>`;
+}
+function renderNews(d){
+  if(!d||d.error||!d.items){ sectionError("news","Sin noticias en el último snapshot."); return; }
+  document.getElementById("body-news").innerHTML=(d.items||[]).map(n=>`
+    <div class="news-item">
+      <div class="meta"><span class="src">${esc(n.source)}</span> · ${esc(n.date)}</div>
+      <div class="headline">${esc(n.headline)}</div>
+      <div class="body">${esc(n.body)}</div>
+    </div>`).join("")||`<div class="err">Sin noticias.</div>`;
+}
+function renderBalance(d){
+  if(!d||d.error){ sectionError("balance","El balance no está disponible en el último snapshot."); return; }
+  const tagCls={alcista:"alcista",bajista:"bajista",neutral:"neutral"}[d.sesgo]||"neutral";
+  document.getElementById("body-balance").innerHTML=`
+    <div class="balance-block">
+      <span class="tag ${tagCls}" style="font-size:12px;padding:3px 12px">SESGO QUINCENAL: ${esc((d.sesgo||"").toUpperCase())}</span>
+      <h3>Lectura general</h3><p>${esc(d.resumen)}</p>
+      <h3>🇺🇸 Estados Unidos</h3><p>${esc(d.eeuu)}</p>
+      <h3>🇧🇷 Brasil</h3><p>${esc(d.brasil)}</p>
+      <h3>🇦🇷 Argentina</h3><p>${esc(d.argentina)}</p>
+      <h3>Demanda global</h3><p>${esc(d.demanda)}</p>
+      <h3>📌 Implicación para ALEN+PRO</h3><p>${esc(d.implicacion)}</p>
+      <h3>Factores a vigilar</h3>
+      <div>${(d.factores||[]).map(f=>`<span class="tag ${f.tipo||'neutral'}">${esc(f.texto)}</span>`).join("")}</div>
+    </div>`;
+}
+function renderTicker(){
+  const parts=[];
+  if(tickerData.cbot&&!tickerData.cbot.error){
+    const s=tickerData.cbot.soybean,m=tickerData.cbot.meal,o=tickerData.cbot.oil;
+    parts.push(`ZS <b>${Number(s.price).toFixed(2)}</b> <span class="${s.change>=0?'u':'d'}">${s.change>=0?'▲':'▼'}${Math.abs(s.change).toFixed(2)}</span>`);
+    parts.push(`ZM <b>${Number(m.price).toFixed(2)}</b> <span class="${m.change>=0?'u':'d'}">${m.change>=0?'▲':'▼'}${Math.abs(m.change).toFixed(2)}</span>`);
+    parts.push(`ZL <b>${Number(o.price).toFixed(2)}</b> <span class="${o.change>=0?'u':'d'}">${o.change>=0?'▲':'▼'}${Math.abs(o.change).toFixed(2)}</span>`);
+  }
+  if(tickerData.arg&&tickerData.arg.pizarra_usd) parts.push(`ROSARIO <b>${Number(tickerData.arg.pizarra_usd).toFixed(1)}</b> USD/t`);
+  if(tickerData.bra&&tickerData.bra.cepea_brl_saca) parts.push(`CEPEA <b>R$${Number(tickerData.bra.cepea_brl_saca).toFixed(2)}</b>/saca`);
+  if(tickerData.bra&&tickerData.bra.usdbrl) parts.push(`USD/BRL <b>${Number(tickerData.bra.usdbrl).toFixed(2)}</b>`);
+  document.getElementById("ticker").innerHTML=parts.length?parts.map(p=>`<span>${p}</span>`).join(""):
+    `<span style="color:var(--ink-faint)">Cinta sin datos.</span>`;
+}
+
+/* ---------- carga del snapshot desde Firebase ---------- */
+async function loadSnapshot(){
+  const btn=document.getElementById("refresh-all"); btn.disabled=true;
+  tickerData={};
+  setLoadingAll("Leyendo último snapshot…");
+  try{
+    const res=await fetch(`${FIREBASE_DB_URL}/mercado-soya/latest.json`,{cache:"no-store"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const snap=await res.json();
+    if(!snap) throw new Error("Aún no hay snapshot. Ejecuta el recolector una vez.");
+    renderCBOT(snap.cbot); renderARG(snap.arg); renderBRA(snap.bra);
+    renderNews(snap.news); renderBalance(snap.balance); renderTicker();
+    const f=new Date(snap.actualizado);
+    document.getElementById("last-update").textContent=
+      "snapshot "+f.toLocaleString("es-CO",{dateStyle:"short",timeStyle:"short"});
+  }catch(e){
+    setLoadingAll("");
+    ["cbot","arg","bra","news","balance"].forEach(id=>sectionError(id,"No se pudo leer el snapshot: "+esc(e.message)));
+    document.getElementById("last-update").textContent="error de lectura";
+  }finally{ btn.disabled=false; }
+}
+
+loadSnapshot();
+/* refresca la vista cada 15 min mientras la pestaña esté abierta (relee Firebase, no consume API) */
+setInterval(loadSnapshot, 15*60*1000);
+</script>
+</body>
+</html>
