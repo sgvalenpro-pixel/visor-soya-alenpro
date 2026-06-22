@@ -1,0 +1,20 @@
+{
+  "name": "Visor Mercado Soya",
+  "short_name": "Visor Soya",
+  "start_url": "/visor-soya-alenpro/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#F5C200",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
