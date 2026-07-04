@@ -1,0 +1,25 @@
+name: Recolector mercado soya
+
+on:
+  schedule:
+    - cron: '45 14 * * *'   # 09:45 hora Colombia
+    - cron: '0 21 * * *'    # 16:00 hora Colombia
+  workflow_dispatch: {}      # permite correrlo a mano desde la pestaña Actions
+
+jobs:
+  recolectar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm install
+
+      - run: node recolector.js
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
