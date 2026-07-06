@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Visor Global de Soya · ALEN+PRO</title>
-<link rel="manifest" href="manifest.json">
 <style>
   :root{
     --bg:#121310;--panel:#1b1d18;--panel-2:#22251e;--line:#33362c;
@@ -91,6 +90,10 @@
     <div class="sec-head"><h2><span class="flag">🇺🇸</span>CBOT — Chicago</h2></div>
     <div class="sec-body" id="body-cbot"></div>
   </section>
+  <section id="sec-trm">
+    <div class="sec-head"><h2><span class="flag">🇨🇴</span>TRM Colombia — Costo en COP/ton</h2></div>
+    <div class="sec-body" id="body-trm"></div>
+  </section>
   <section id="sec-arg">
     <div class="sec-head"><h2><span class="flag">🇦🇷</span>Argentina — Rosario / MATBA</h2></div>
     <div class="sec-body" id="body-arg"></div>
@@ -126,10 +129,14 @@ const FIREBASE_DB_URL = "https://visor-soya-alenpro-default-rtdb.firebaseio.com"
 
 /* ---------- helpers ---------- */
 function setLoadingAll(msg){
-  ["cbot","arg","bra","news","balance"].forEach(id=>{
+  ["cbot","trm","arg","bra","news","balance"].forEach(id=>{
     document.getElementById("body-"+id).innerHTML =
       `<div class="loading"><div class="spinner"></div>${msg}</div>`;
   });
+}
+function setLoading(id,msg){
+  document.getElementById("body-"+id).innerHTML =
+    `<div class="loading"><div class="spinner"></div>${msg}</div>`;
 }
 function sectionError(id,msg){
   document.getElementById("body-"+id).innerHTML = `<div class="err">⚠ ${msg}</div>`;
@@ -207,6 +214,72 @@ function renderBalance(d){
       <div>${(d.factores||[]).map(f=>`<span class="tag ${f.tipo||'neutral'}">${esc(f.texto)}</span>`).join("")}</div>
     </div>`;
 }
+/* ---------- TRM en vivo (datos.gov.co, fuente oficial) + costo COP/ton ---------- */
+let currentSnapshot=null;
+
+// Conversiones a tonelada métrica:
+//  - Frijol soya CBOT: centavos USD/bushel -> USD/ton (1 bushel soya = 27,2155 kg)
+//  - Torta de soya CBOT: USD/short ton -> USD/ton métrica (1 short ton = 0,907185 t)
+function beanCentsToUsdTon(cents){ return (cents/100)/0.0272155; }
+function mealStToUsdTon(usdst){ return usdst/0.907185; }
+
+async function loadTRM(){
+  setLoading("trm","Consultando TRM oficial…");
+  let trm=null, fecha=null;
+  try{
+    // Fuente 1: Datos Abiertos Colombia (Superintendencia Financiera)
+    const url="https://www.datos.gov.co/resource/32sa-8pi3.json?$order=vigenciadesde%20DESC&$limit=1";
+    const r=await fetch(url,{cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j=await r.json();
+    if(j&&j[0]&&j[0].valor){ trm=parseFloat(j[0].valor); fecha=j[0].vigenciadesde; }
+    else throw new Error("respuesta vacía");
+  }catch(e1){
+    try{
+      // Fuente 2 (respaldo): dolarapi.com
+      const r2=await fetch("https://co.dolarapi.com/v1/dolares/oficial",{cache:"no-store"});
+      if(!r2.ok) throw new Error("HTTP "+r2.status);
+      const j2=await r2.json();
+      trm=parseFloat(j2.venta||j2.compra||j2.valor); fecha=j2.fechaActualizacion||null;
+    }catch(e2){
+      sectionError("trm","No se pudo obtener la TRM oficial. "+esc(e1.message));
+      return;
+    }
+  }
+  tickerData.trm={valor:trm,fecha:fecha};
+  renderTRM();
+  renderTicker();
+}
+
+function renderTRM(){
+  const t=tickerData.trm; if(!t||!t.valor){ return; }
+  const trm=t.valor;
+  const fechaTxt = t.fecha ? new Date(t.fecha).toLocaleDateString("es-CO",{dateStyle:"medium"}) : "hoy";
+  let filas="";
+  const c=currentSnapshot&&currentSnapshot.cbot;
+  if(c&&!c.error){
+    const beanUsd=beanCentsToUsdTon(Number(c.soybean.price));
+    const mealUsd=mealStToUsdTon(Number(c.meal.price));
+    const fmt=n=>Math.round(n).toLocaleString("es-CO");
+    filas=`
+      <table style="margin-top:4px">
+        <tr><th>Producto (ref. CBOT)</th><th>USD/ton</th><th>COP/ton</th></tr>
+        <tr><td class="name">Frijol soya</td><td>${fmt(beanUsd)}</td><td>$ ${fmt(beanUsd*trm)}</td></tr>
+        <tr><td class="name">Torta de soya (SBM)</td><td>${fmt(mealUsd)}</td><td>$ ${fmt(mealUsd*trm)}</td></tr>
+      </table>
+      <div class="note">Conversión de referencia del precio de futuros CBOT a la TRM del día. <b>No incluye base, flete, seguro ni nacionalización</b> — es un indicador de tendencia, no el costo puesto en planta.</div>`;
+  } else {
+    filas=`<div class="note">Carga el snapshot para ver el costo en COP/ton.</div>`;
+  }
+  document.getElementById("body-trm").innerHTML=`
+    <table>
+      <tr><th>Indicador</th><th>Valor</th></tr>
+      <tr><td class="name">TRM oficial</td><td>$ ${trm.toLocaleString("es-CO",{minimumFractionDigits:2,maximumFractionDigits:2})} COP/USD</td></tr>
+      <tr><td class="name">Vigencia</td><td>${esc(fechaTxt)}</td></tr>
+    </table>
+    ${filas}`;
+}
+
 function renderTicker(){
   const parts=[];
   if(tickerData.cbot&&!tickerData.cbot.error){
@@ -218,6 +291,7 @@ function renderTicker(){
   if(tickerData.arg&&tickerData.arg.pizarra_usd) parts.push(`ROSARIO <b>${Number(tickerData.arg.pizarra_usd).toFixed(1)}</b> USD/t`);
   if(tickerData.bra&&tickerData.bra.cepea_brl_saca) parts.push(`CEPEA <b>R$${Number(tickerData.bra.cepea_brl_saca).toFixed(2)}</b>/saca`);
   if(tickerData.bra&&tickerData.bra.usdbrl) parts.push(`USD/BRL <b>${Number(tickerData.bra.usdbrl).toFixed(2)}</b>`);
+  if(tickerData.trm&&tickerData.trm.valor) parts.push(`TRM <b>$${Number(tickerData.trm.valor).toLocaleString("es-CO",{maximumFractionDigits:0})}</b>`);
   document.getElementById("ticker").innerHTML=parts.length?parts.map(p=>`<span>${p}</span>`).join(""):
     `<span style="color:var(--ink-faint)">Cinta sin datos.</span>`;
 }
@@ -232,14 +306,16 @@ async function loadSnapshot(){
     if(!res.ok) throw new Error("HTTP "+res.status);
     const snap=await res.json();
     if(!snap) throw new Error("Aún no hay snapshot. Ejecuta el recolector una vez.");
+    currentSnapshot=snap;
     renderCBOT(snap.cbot); renderARG(snap.arg); renderBRA(snap.bra);
     renderNews(snap.news); renderBalance(snap.balance); renderTicker();
     const f=new Date(snap.actualizado);
     document.getElementById("last-update").textContent=
       "snapshot "+f.toLocaleString("es-CO",{dateStyle:"short",timeStyle:"short"});
+    loadTRM(); // la TRM es en vivo, independiente del snapshot
   }catch(e){
     setLoadingAll("");
-    ["cbot","arg","bra","news","balance"].forEach(id=>sectionError(id,"No se pudo leer el snapshot: "+esc(e.message)));
+    ["cbot","trm","arg","bra","news","balance"].forEach(id=>sectionError(id,"No se pudo leer el snapshot: "+esc(e.message)));
     document.getElementById("last-update").textContent="error de lectura";
   }finally{ btn.disabled=false; }
 }
