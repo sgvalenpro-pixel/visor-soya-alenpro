@@ -90,6 +90,14 @@
     <div class="sec-head"><h2><span class="flag">🇺🇸</span>CBOT — Chicago</h2></div>
     <div class="sec-body" id="body-cbot"></div>
   </section>
+  <section id="sec-wasde">
+    <div class="sec-head"><h2><span class="flag">📊</span>WASDE — USDA (mensual)</h2></div>
+    <div class="sec-body" id="body-wasde"></div>
+  </section>
+  <section id="sec-exports">
+    <div class="sec-head"><h2><span class="flag">🚢</span>Exportaciones semanales EE.UU.</h2></div>
+    <div class="sec-body" id="body-exports"></div>
+  </section>
   <section id="sec-trm">
     <div class="sec-head"><h2><span class="flag">🇨🇴</span>TRM Colombia — Costo en COP/ton</h2></div>
     <div class="sec-body" id="body-trm"></div>
@@ -129,7 +137,7 @@ const FIREBASE_DB_URL = "https://visor-soya-alenpro-default-rtdb.firebaseio.com"
 
 /* ---------- helpers ---------- */
 function setLoadingAll(msg){
-  ["cbot","trm","arg","bra","news","balance"].forEach(id=>{
+  ["cbot","wasde","exports","trm","arg","bra","news","balance"].forEach(id=>{
     document.getElementById("body-"+id).innerHTML =
       `<div class="loading"><div class="spinner"></div>${msg}</div>`;
   });
@@ -197,6 +205,36 @@ function renderNews(d){
       <div class="headline">${esc(n.headline)}</div>
       <div class="body">${esc(n.body)}</div>
     </div>`).join("")||`<div class="err">Sin noticias.</div>`;
+}
+function renderWasde(d){
+  if(!d||d.error){ sectionError("wasde","Sin datos del WASDE en el último snapshot."); return; }
+  document.getElementById("body-wasde").innerHTML=`
+    <table>
+      <tr><th>Referencia</th><th>Valor</th></tr>
+      <tr><td class="name">Reporte</td><td>${esc(d.reporte||"—")}</td></tr>
+      <tr><td class="name">Próximo reporte</td><td>${esc(d.proximo||"—")}</td></tr>
+      <tr><td class="name">Sesgo</td><td>${esc((d.sesgo||"—").toUpperCase())}</td></tr>
+      <tr><td class="name">Producción soya</td><td>${esc(d.soya_prod||"—")}</td></tr>
+      <tr><td class="name">Rinde</td><td>${esc(d.soya_yield||"—")}</td></tr>
+      <tr><td class="name">Stocks finales</td><td>${esc(d.soya_stocks||"—")}</td></tr>
+      <tr><td class="name">Exportaciones (ajuste)</td><td>${esc(d.soya_export||"—")}</td></tr>
+    </table>
+    <div class="note">${esc(d.resumen||"")}</div>
+    ${d.otros_granos?`<div class="note">🌽 ${esc(d.otros_granos)}</div>`:""}`;
+}
+function renderExports(d){
+  if(!d||d.error){ sectionError("exports","Sin datos de exportaciones semanales en el último snapshot."); return; }
+  const row=(label,o)=> o?
+    `<tr><td class="name">${label}</td><td>${esc(o.vol||"—")}</td><td>${esc(o.destino||"—")}</td><td>${esc(o.tendencia||"—")}</td></tr>` : "";
+  document.getElementById("body-exports").innerHTML=`
+    <div class="note" style="margin:0 0 10px;border:none;padding:0;color:var(--ink-faint)">${esc(d.semana||"")}</div>
+    <table>
+      <tr><th>Producto</th><th>Volumen</th><th>Principal destino</th><th>Tendencia</th></tr>
+      ${row("Frijol soya",d.sb)}
+      ${row("Torta de soya",d.sbm)}
+      ${row("Aceite de soya",d.sbo)}
+    </table>
+    <div class="note">${esc(d.comment||"")}</div>`;
 }
 function renderBalance(d){
   if(!d||d.error){ sectionError("balance","El balance no está disponible en el último snapshot."); return; }
@@ -307,7 +345,8 @@ async function loadSnapshot(){
     const snap=await res.json();
     if(!snap) throw new Error("Aún no hay snapshot. Ejecuta el recolector una vez.");
     currentSnapshot=snap;
-    renderCBOT(snap.cbot); renderARG(snap.arg); renderBRA(snap.bra);
+    renderCBOT(snap.cbot); renderWasde(snap.wasde); renderExports(snap.exports);
+    renderARG(snap.arg); renderBRA(snap.bra);
     renderNews(snap.news); renderBalance(snap.balance); renderTicker();
     const f=new Date(snap.actualizado);
     document.getElementById("last-update").textContent=
@@ -315,7 +354,7 @@ async function loadSnapshot(){
     loadTRM(); // la TRM es en vivo, independiente del snapshot
   }catch(e){
     setLoadingAll("");
-    ["cbot","trm","arg","bra","news","balance"].forEach(id=>sectionError(id,"No se pudo leer el snapshot: "+esc(e.message)));
+    ["cbot","wasde","exports","trm","arg","bra","news","balance"].forEach(id=>sectionError(id,"No se pudo leer el snapshot: "+esc(e.message)));
     document.getElementById("last-update").textContent="error de lectura";
   }finally{ btn.disabled=false; }
 }
