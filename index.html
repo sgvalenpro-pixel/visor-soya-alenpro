@@ -35,7 +35,6 @@
   main{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:18px 24px 40px;max-width:1500px;margin:0 auto}
   @media(max-width:980px){main{grid-template-columns:1fr}}
   section{background:var(--panel);border:1px solid var(--line);border-radius:3px;display:flex;flex-direction:column;min-height:220px}
-  section.wide{grid-column:1/-1}
   .sec-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
     border-bottom:1px solid var(--line);background:var(--panel-2)}
   .sec-head h2{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:var(--amber);font-family:'Arial Black',Arial,sans-serif}
@@ -53,14 +52,6 @@
   td.name{color:var(--ink);font-weight:bold}
   .u{color:var(--up)} .d{color:var(--down)}
   .note{font-size:11px;color:var(--ink-dim);margin-top:10px;border-left:2px solid var(--amber);padding-left:9px}
-  .balance-block h3{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-dim);
-    margin:14px 0 5px;padding-bottom:3px;border-bottom:1px dashed var(--line)}
-  .balance-block h3:first-child{margin-top:0}
-  .balance-block p{margin-bottom:6px;color:var(--ink)}
-  .tag{display:inline-block;font-size:10px;font-family:var(--mono);border:1px solid var(--line);color:var(--ink-dim);padding:1px 7px;border-radius:10px;margin:2px 4px 2px 0}
-  .tag.alcista{border-color:var(--up);color:var(--up)}
-  .tag.bajista{border-color:var(--down);color:var(--down)}
-  .tag.neutral{border-color:var(--amber-dim);color:var(--amber)}
   .news-item{padding:9px 0;border-bottom:1px solid #232620}
   .news-item:last-child{border-bottom:none}
   .news-item .meta{font-family:var(--mono);font-size:10px;color:var(--ink-faint);margin-bottom:2px}
@@ -90,14 +81,6 @@
     <div class="sec-head"><h2><span class="flag">🇺🇸</span>CBOT — Chicago</h2></div>
     <div class="sec-body" id="body-cbot"></div>
   </section>
-  <section id="sec-wasde">
-    <div class="sec-head"><h2><span class="flag">📊</span>WASDE — USDA (mensual)</h2></div>
-    <div class="sec-body" id="body-wasde"></div>
-  </section>
-  <section id="sec-exports">
-    <div class="sec-head"><h2><span class="flag">🚢</span>Exportaciones semanales EE.UU.</h2></div>
-    <div class="sec-body" id="body-exports"></div>
-  </section>
   <section id="sec-trm">
     <div class="sec-head"><h2><span class="flag">🇨🇴</span>TRM Colombia — Costo en COP/ton</h2></div>
     <div class="sec-body" id="body-trm"></div>
@@ -114,16 +97,12 @@
     <div class="sec-head"><h2><span class="flag">📰</span>Noticias y comentarios</h2></div>
     <div class="sec-body" id="body-news"></div>
   </section>
-  <section class="wide" id="sec-balance">
-    <div class="sec-head"><h2><span class="flag">🧭</span>Balance quincenal — estilo analista USSEC / USSOY</h2></div>
-    <div class="sec-body" id="body-balance"></div>
-  </section>
 </main>
 
 <footer>
   Datos recolectados automáticamente 2 veces al día (apertura y cierre de CBOT) y almacenados en Firebase.
-  Fuentes: Barchart, CME, BCR, CEPEA, USDA, USSEC y prensa especializada. Valores referenciales — verificar antes
-  de decisiones de compra. ALEN+PRO · Pereira, Colombia.
+  Fuentes: Yahoo Finance, BCR, CEPEA/Notícias Agrícolas, datos.gov.co y Agri-Pulse. Valores referenciales —
+  verificar antes de decisiones de compra. ALEN+PRO · Pereira, Colombia.
 </footer>
 
 <script>
@@ -137,7 +116,7 @@ const FIREBASE_DB_URL = "https://visor-soya-alenpro-default-rtdb.firebaseio.com"
 
 /* ---------- helpers ---------- */
 function setLoadingAll(msg){
-  ["cbot","wasde","exports","trm","arg","bra","news","balance"].forEach(id=>{
+  ["cbot","trm","arg","bra","news"].forEach(id=>{
     document.getElementById("body-"+id).innerHTML =
       `<div class="loading"><div class="spinner"></div>${msg}</div>`;
   });
@@ -205,52 +184,6 @@ function renderNews(d){
       <div class="headline">${esc(n.headline)}</div>
       <div class="body">${esc(n.body)}</div>
     </div>`).join("")||`<div class="err">Sin noticias.</div>`;
-}
-function renderWasde(d){
-  if(!d||d.error){ sectionError("wasde","Sin datos del WASDE en el último snapshot."); return; }
-  document.getElementById("body-wasde").innerHTML=`
-    <table>
-      <tr><th>Referencia</th><th>Valor</th></tr>
-      <tr><td class="name">Reporte</td><td>${esc(d.reporte||"—")}</td></tr>
-      <tr><td class="name">Próximo reporte</td><td>${esc(d.proximo||"—")}</td></tr>
-      <tr><td class="name">Sesgo</td><td>${esc((d.sesgo||"—").toUpperCase())}</td></tr>
-      <tr><td class="name">Producción soya</td><td>${esc(d.soya_prod||"—")}</td></tr>
-      <tr><td class="name">Rinde</td><td>${esc(d.soya_yield||"—")}</td></tr>
-      <tr><td class="name">Stocks finales</td><td>${esc(d.soya_stocks||"—")}</td></tr>
-      <tr><td class="name">Exportaciones (ajuste)</td><td>${esc(d.soya_export||"—")}</td></tr>
-    </table>
-    <div class="note">${esc(d.resumen||"")}</div>
-    ${d.otros_granos?`<div class="note">🌽 ${esc(d.otros_granos)}</div>`:""}`;
-}
-function renderExports(d){
-  if(!d||d.error){ sectionError("exports","Sin datos de exportaciones semanales en el último snapshot."); return; }
-  const row=(label,o)=> o?
-    `<tr><td class="name">${label}</td><td>${esc(o.vol||"—")}</td><td>${esc(o.destino||"—")}</td><td>${esc(o.tendencia||"—")}</td></tr>` : "";
-  document.getElementById("body-exports").innerHTML=`
-    <div class="note" style="margin:0 0 10px;border:none;padding:0;color:var(--ink-faint)">${esc(d.semana||"")}</div>
-    <table>
-      <tr><th>Producto</th><th>Volumen</th><th>Principal destino</th><th>Tendencia</th></tr>
-      ${row("Frijol soya",d.sb)}
-      ${row("Torta de soya",d.sbm)}
-      ${row("Aceite de soya",d.sbo)}
-    </table>
-    <div class="note">${esc(d.comment||"")}</div>`;
-}
-function renderBalance(d){
-  if(!d||d.error){ sectionError("balance","El balance no está disponible en el último snapshot."); return; }
-  const tagCls={alcista:"alcista",bajista:"bajista",neutral:"neutral"}[d.sesgo]||"neutral";
-  document.getElementById("body-balance").innerHTML=`
-    <div class="balance-block">
-      <span class="tag ${tagCls}" style="font-size:12px;padding:3px 12px">SESGO QUINCENAL: ${esc((d.sesgo||"").toUpperCase())}</span>
-      <h3>Lectura general</h3><p>${esc(d.resumen)}</p>
-      <h3>🇺🇸 Estados Unidos</h3><p>${esc(d.eeuu)}</p>
-      <h3>🇧🇷 Brasil</h3><p>${esc(d.brasil)}</p>
-      <h3>🇦🇷 Argentina</h3><p>${esc(d.argentina)}</p>
-      <h3>Demanda global</h3><p>${esc(d.demanda)}</p>
-      <h3>📌 Implicación para ALEN+PRO</h3><p>${esc(d.implicacion)}</p>
-      <h3>Factores a vigilar</h3>
-      <div>${(d.factores||[]).map(f=>`<span class="tag ${f.tipo||'neutral'}">${esc(f.texto)}</span>`).join("")}</div>
-    </div>`;
 }
 /* ---------- TRM en vivo (datos.gov.co, fuente oficial) + costo COP/ton ---------- */
 let currentSnapshot=null;
@@ -345,16 +278,15 @@ async function loadSnapshot(){
     const snap=await res.json();
     if(!snap) throw new Error("Aún no hay snapshot. Ejecuta el recolector una vez.");
     currentSnapshot=snap;
-    renderCBOT(snap.cbot); renderWasde(snap.wasde); renderExports(snap.exports);
-    renderARG(snap.arg); renderBRA(snap.bra);
-    renderNews(snap.news); renderBalance(snap.balance); renderTicker();
+    renderCBOT(snap.cbot); renderARG(snap.arg); renderBRA(snap.bra);
+    renderNews(snap.news); renderTicker();
     const f=new Date(snap.actualizado);
     document.getElementById("last-update").textContent=
       "snapshot "+f.toLocaleString("es-CO",{dateStyle:"short",timeStyle:"short"});
     loadTRM(); // la TRM es en vivo, independiente del snapshot
   }catch(e){
     setLoadingAll("");
-    ["cbot","wasde","exports","trm","arg","bra","news","balance"].forEach(id=>sectionError(id,"No se pudo leer el snapshot: "+esc(e.message)));
+    ["cbot","trm","arg","bra","news"].forEach(id=>sectionError(id,"No se pudo leer el snapshot: "+esc(e.message)));
     document.getElementById("last-update").textContent="error de lectura";
   }finally{ btn.disabled=false; }
 }

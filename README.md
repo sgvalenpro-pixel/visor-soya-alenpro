@@ -24,23 +24,24 @@ el visor solo la lee, así que vive en GitHub Pages sin exponer ninguna clave.
    hora Colombia) y permite ejecutarlo a mano desde *Actions*.
 3. **index.html** — el visor. Lee `/mercado-soya/latest`. Se publica en GitHub Pages.
 
-### Qué secciones están activas hoy
+### Secciones del visor
 
-| Sección | Estado | Fuente |
-|---|---|---|
-| CBOT (Chicago) | ✅ En vivo | Yahoo Finance (`ZS=F`, `ZM=F`, `ZL=F`) |
-| Noticias | ✅ En vivo | RSS de Agri-Pulse (tema "Trade"/internacional; no exclusivo de soya) |
-| TRM Colombia | ✅ En vivo | datos.gov.co / dolarapi.com (se lee directo en el navegador, no pasa por el recolector) |
-| Argentina (pizarra Rosario) | ✅ En vivo | Scraping de precios de pizarra de la Bolsa de Comercio de Rosario (cac.bcr.com.ar) — solo el precio, sin MATBA/campo/política |
-| Brasil (CEPEA) | ✅ En vivo | Scraping del indicador CEPEA/ESALQ Paranaguá republicado por Notícias Agrícolas, + USD/BRL de Yahoo Finance — sin premio FOB ni narrativa de campo |
-| WASDE (USDA) | ⏸ Pendiente | El dominio usda.gov bloquea (403) las descargas automatizadas del CSV histórico |
-| Exportaciones semanales | ⏸ Pendiente | Requiere clave gratuita de USDA FAS Open Data (apps.fas.usda.gov/opendataweb) — hay que registrarla manualmente |
-| Balance quincenal (análisis en prosa) | ⏸ Pendiente | Requiere redacción tipo analista; ninguna fuente gratuita la ofrece |
+| Sección | Fuente |
+|---|---|
+| CBOT (Chicago) | Yahoo Finance (`ZS=F`, `ZM=F`, `ZL=F`) |
+| Noticias | RSS de Agri-Pulse (tema "Trade"/internacional; no exclusivo de soya) |
+| TRM Colombia | datos.gov.co / dolarapi.com (se lee directo en el navegador, no pasa por el recolector) |
+| Argentina (pizarra Rosario) | Scraping de precios de pizarra de la Bolsa de Comercio de Rosario (cac.bcr.com.ar) — solo el precio, sin MATBA/campo/política |
+| Brasil (CEPEA) | Scraping del indicador CEPEA/ESALQ Paranaguá republicado por Notícias Agrícolas, + USD/BRL de Yahoo Finance — sin premio FOB ni narrativa de campo |
 
-El visor muestra "Sin datos" en las secciones pendientes sin romperse. Las secciones de
-Argentina y Brasil dependen del HTML público de BCR y Notícias Agrícolas — si esos sitios
-cambian su estructura, el scraping puede romperse y esa sección quedará en "Sin datos"
-hasta ajustar el selector en `recolector.js`.
+No hay secciones de WASDE, exportaciones semanales ni balance quincenal — se quitaron
+del visor porque ninguna fuente gratuita las cubre (WASDE: usda.gov bloquea con 403 la
+descarga automatizada; exportaciones: requiere clave de USDA FAS; balance: requiere
+redacción tipo analista, que ninguna fuente gratuita ofrece).
+
+Las secciones de Argentina y Brasil dependen del HTML público de BCR y Notícias Agrícolas
+— si esos sitios cambian su estructura, el scraping puede romperse y esa sección quedará
+en "Sin datos" hasta ajustar el selector en `recolector.js`.
 
 ## Instalación (una sola vez)
 

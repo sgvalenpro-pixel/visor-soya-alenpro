@@ -11,11 +11,6 @@
  * Arma un único snapshot JSON y lo escribe en Firebase usando el Admin SDK
  * (cuenta de servicio). El visor solo LEE ese snapshot.
  *
- * WASDE y el balance quincenal (análisis en prosa) quedan sin implementar:
- * usda.gov bloquea (403) la descarga automatizada del CSV histórico de WASDE,
- * y el balance requiere redacción tipo analista que ninguna fuente gratuita
- * ofrece. El visor ya maneja estas secciones como "sin datos" sin romperse.
- *
  * Secrets del repositorio:
  *   FIREBASE_DB_URL           -> https://TU-PROYECTO-default-rtdb.firebaseio.com
  *   FIREBASE_SERVICE_ACCOUNT  -> contenido COMPLETO del JSON de la cuenta de servicio
