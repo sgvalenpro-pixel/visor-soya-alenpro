@@ -103,47 +103,22 @@ Responde ÚNICAMENTE JSON válido sin markdown:
   balance: `Actúa como analista senior del mercado de soya (estilo de los balances quincenales que presentan analistas de USSEC / U.S. Soy a compradores latinoamericanos). Busca en la web información de las ÚLTIMAS DOS SEMANAS del complejo soya: último WASDE del USDA, ventas semanales de exportación de EE.UU., avance de campaña y clima en Brasil y Argentina, demanda de China, márgenes de molienda (crush), aceite y biocombustibles.
 Escribe en ESPAÑOL para un comprador industrial de soya en Colombia. Sé concreto con cifras. Usa siempre "torta de soya" para el SBM, nunca "harina de soya".
 Responde ÚNICAMENTE JSON válido sin markdown:
-{"sesgo":"alcista|bajista|neutral","resumen":"3-4 frases lectura general","eeuu":"2-3 frases: WASDE, exportaciones, crush, clima","brasil":"2-3 frases: campaña, logística, premios","argentina":"2-3 frases: campaña, comercialización, política","demanda":"2 frases: China, aceites, biocombustible","implicacion":"2-3 frases: qué significa para un comprador en Colombia","factores":[{"texto":"factor clave corto","tipo":"alcista|bajista|neutral"}]}`,
-
-  wasde: `Busca en la web el reporte WASDE (World Agricultural Supply and Demand Estimates) MÁS RECIENTE del USDA (usda.gov, fas.usda.gov, o coberturas de Reuters/DTN/Farmdoc sobre el reporte). Necesito, para SOYA en EE.UU.:
-1. Nombre/fecha del reporte y fecha del PRÓXIMO reporte WASDE
-2. Sesgo general para soya del reporte (alcista/bajista/neutral/moderadamente alcista/moderadamente bajista, con 1-2 palabras de motivo)
-3. Producción de soya (millones de bushels, con variación interanual o vs. mes previo si está)
-4. Rinde promedio (bu/acre), con nota de si cambió o no vs. el reporte anterior
-5. Stocks finales (ending stocks) de soya en millones de bushels, con nota de si cambió o no
-6. Cambio en la proyección de exportaciones de soya (millones de bushels, motivo breve)
-7. Resumen de 2-4 frases en español sobre qué significó el reporte para soya
-8. 1-2 frases en español sobre maíz y trigo (stocks, cosecha) si compiten por área/demanda con la soya, o null
-Responde ÚNICAMENTE JSON válido sin markdown:
-{"reporte":"WASDE de julio 2026 (10 jul)","proximo":"12 de agosto de 2026","sesgo":"moderadamente alcista","soya_prod":"4.475 M bu — récord potencial (+5% interanual, 85,4 M acres)","soya_yield":"53,0 bu/acre (sin cambios)","soya_stocks":"310 M bu (sin cambios; más oferta compensada con más uso)","soya_export":"subidas 30 M bu por mayor demanda global","resumen":"...","otros_granos":"..."}
-Usa null si un valor no está disponible.`,
-
-  exports: `Busca en la web el reporte semanal MÁS RECIENTE de ventas de exportación de EE.UU. (USDA FAS Export Sales, fas.usda.gov/data/export-sales, o coberturas de Reuters/DTN/Brownfield sobre el reporte). Necesito, para la semana reportada:
-1. Rango de fechas de la semana y fecha de publicación del reporte
-2. Frijol soya (soybeans): volumen vendido (toneladas o miles de toneladas, distinguiendo ciclo viejo/nuevo si aplica), principal país comprador con su volumen, y tendencia (fuerte/débil/en línea, vs. semana previa o promedio)
-3. Torta de soya (soybean meal): mismo detalle (volumen, principal comprador, tendencia). Usa siempre "torta de soya", nunca "harina de soya".
-4. Aceite de soya (soybean oil): mismo detalle (volumen, principal comprador, tendencia)
-5. Comentario breve (2-3 frases, español) sobre qué implica la semana para el mercado, priorizando cualquier mención de Colombia como comprador
-Responde ÚNICAMENTE JSON válido sin markdown:
-{"semana":"Semana al 9 jul (reporte del 16 jul)","sb":{"vol":"1,77 M t (nueva cosecha 2026/27) · vieja 188.300 t","destino":"China (1,06 M t)","tendencia":"fuerte en nueva cosecha"},"sbm":{"vol":"177.000 t","destino":"Colombia (151.900 t)","tendencia":"-22% sem / -22% vs 4 sem"},"sbo":{"vol":"reducción neta de 300 t","destino":"México (700 t)","tendencia":"muy débil"},"comment":"..."}
-Usa null si un valor no está disponible.`
+{"sesgo":"alcista|bajista|neutral","resumen":"3-4 frases lectura general","eeuu":"2-3 frases: WASDE, exportaciones, crush, clima","brasil":"2-3 frases: campaña, logística, premios","argentina":"2-3 frases: campaña, comercialización, política","demanda":"2 frases: China, aceites, biocombustible","implicacion":"2-3 frases: qué significa para un comprador en Colombia","factores":[{"texto":"factor clave corto","tipo":"alcista|bajista|neutral"}]}`
 };
 
 /* ---------- main ---------- */
 (async () => {
   console.log("Recolectando snapshot de mercado de soya…");
 
-  const [cbot, arg, bra, news, balance, wasde, exports_] = await Promise.all([
-    safe("CBOT",         () => askClaude(P.cbot)),
-    safe("Argentina",    () => askClaude(P.arg)),
-    safe("Brasil",       () => askClaude(P.bra)),
-    safe("Noticias",     () => askClaude(P.news)),
-    safe("Balance",      () => askClaude(P.balance, 1600)),
-    safe("WASDE",        () => askClaude(P.wasde)),
-    safe("Exportaciones",() => askClaude(P.exports)),
+  const [cbot, arg, bra, news, balance] = await Promise.all([
+    safe("CBOT",      () => askClaude(P.cbot)),
+    safe("Argentina", () => askClaude(P.arg)),
+    safe("Brasil",    () => askClaude(P.bra)),
+    safe("Noticias",  () => askClaude(P.news)),
+    safe("Balance",   () => askClaude(P.balance, 1600)),
   ]);
 
-  const snapshot = { actualizado: new Date().toISOString(), cbot, arg, bra, news, balance, wasde, exports: exports_ };
+  const snapshot = { actualizado: new Date().toISOString(), cbot, arg, bra, news, balance };
 
   await db.ref("mercado-soya/latest").set(snapshot);
   const key = snapshot.actualizado.replace(/[.:]/g, "-");
