@@ -2,41 +2,25 @@
 
 Visor de mercado del frijol soya (EE.UU., Argentina, Brasil) para compartir entre el
 equipo desde cualquier dispositivo. La información se recolecta **automáticamente 2 veces
-al día** desde fuentes públicas y gratuitas (sin API de pago) y se guarda en Firebase;
-el visor solo la lee, así que vive en GitHub Pages sin exponer ninguna clave.
+al día** y se guarda en Firebase; el visor solo la lee, así que vive en GitHub Pages sin
+exponer ninguna clave.
 
 ## Cómo funciona (3 piezas)
 
 ```
   GitHub Actions  ──(2 veces/día)──►  recolector.js  ──escribe──►  Firebase
-   (programador)                    (fuentes gratuitas)            /mercado-soya/latest
+   (programador)                      (consulta API)              /mercado-soya/latest
                                                                         │ lee
                                                                         ▼
                                                                   index.html
                                                                 (GitHub Pages)
 ```
 
-1. **recolector.js** — trae datos de fuentes públicas gratuitas (Yahoo Finance para CBOT,
-   RSS para noticias) y escribe el snapshot en Firebase con el Admin SDK (cuenta de servicio).
-   No usa ningún API de pago.
+1. **recolector.js** — consulta el API de Anthropic (con búsqueda web) y escribe el snapshot
+   en Firebase con el Admin SDK (cuenta de servicio).
 2. **.github/workflows/recolector.yml** — corre el recolector 2 veces al día (09:00 y 14:30
    hora Colombia) y permite ejecutarlo a mano desde *Actions*.
 3. **index.html** — el visor. Lee `/mercado-soya/latest`. Se publica en GitHub Pages.
-
-### Qué secciones están activas hoy
-
-| Sección | Estado | Fuente |
-|---|---|---|
-| CBOT (Chicago) | ✅ En vivo | Yahoo Finance (`ZS=F`, `ZM=F`, `ZL=F`) |
-| Noticias | ✅ En vivo | RSS de Agri-Pulse (tema "Trade"/internacional; no exclusivo de soya) |
-| TRM Colombia | ✅ En vivo | datos.gov.co / dolarapi.com (se lee directo en el navegador, no pasa por el recolector) |
-| Argentina (Rosario/MATBA) | ⏸ Pendiente | No hay API pública gratuita; scraping de BCR es frágil |
-| Brasil (CEPEA) | ⏸ Pendiente | No hay API pública gratuita; scraping es frágil |
-| WASDE (USDA) | ⏸ Pendiente | El dominio usda.gov bloquea (403) las descargas automatizadas del CSV histórico |
-| Exportaciones semanales | ⏸ Pendiente | Requiere clave gratuita de USDA FAS Open Data (apps.fas.usda.gov/opendataweb) — hay que registrarla manualmente |
-| Balance quincenal (análisis en prosa) | ⏸ Pendiente | Requería un modelo de IA para redactarlo; sin API de pago no hay reemplazo directo |
-
-El visor muestra "Sin datos" en las secciones pendientes sin romperse.
 
 ## Instalación (una sola vez)
 
@@ -72,10 +56,9 @@ GitHub → Settings → Secrets and variables → Actions → New repository sec
 
 | Secret                     | Valor                                                      |
 |----------------------------|------------------------------------------------------------|
+| `ANTHROPIC_API_KEY`        | Clave del API de Anthropic (console.anthropic.com)         |
 | `FIREBASE_DB_URL`          | `https://TU-PROYECTO-default-rtdb.firebaseio.com`          |
 | `FIREBASE_SERVICE_ACCOUNT` | El **contenido completo** del archivo JSON de la cuenta    |
-
-> Ya no se necesita `ANTHROPIC_API_KEY` — el recolector no usa ningún API de pago.
 
 ### 5. Apuntar el visor a tu Firebase
 En `index.html`, edita:
