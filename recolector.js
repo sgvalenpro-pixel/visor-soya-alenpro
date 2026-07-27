@@ -2,15 +2,19 @@
  * Recolector de mercado de soya — ALEN+PRO
  * --------------------------------------------------
  * Corre en GitHub Actions 2 veces al día. Usa SOLO fuentes públicas y
- * gratuitas (sin API de pago): Yahoo Finance para CBOT y un feed RSS
- * para noticias. Arma un único snapshot JSON y lo escribe en Firebase
- * usando el Admin SDK (cuenta de servicio). El visor solo LEE ese snapshot.
+ * gratuitas (sin API de pago):
+ *   - CBOT: Yahoo Finance
+ *   - Noticias: RSS de Agri-Pulse
+ *   - Argentina: precios de pizarra de la Bolsa de Comercio de Rosario (BCR)
+ *   - Brasil: indicador CEPEA/ESALQ Paranaguá republicado por Notícias Agrícolas,
+ *     + USD/BRL de Yahoo Finance
+ * Arma un único snapshot JSON y lo escribe en Firebase usando el Admin SDK
+ * (cuenta de servicio). El visor solo LEE ese snapshot.
  *
- * Argentina, Brasil, el balance quincenal (análisis en prosa) y el WASDE
- * quedan sin implementar por ahora: no hay API pública gratuita para
- * Rosario/CEPEA, y el dominio usda.gov bloquea tráfico automatizado
- * (403) en las URLs de datos históricos de WASDE. El visor ya maneja
- * estas secciones como "sin datos" sin romperse.
+ * WASDE y el balance quincenal (análisis en prosa) quedan sin implementar:
+ * usda.gov bloquea (403) la descarga automatizada del CSV histórico de WASDE,
+ * y el balance requiere redacción tipo analista que ninguna fuente gratuita
+ * ofrece. El visor ya maneja estas secciones como "sin datos" sin romperse.
  *
  * Secrets del repositorio:
  *   FIREBASE_DB_URL           -> https://TU-PROYECTO-default-rtdb.firebaseio.com
@@ -119,18 +123,71 @@ async function fetchNews() {
   return { items };
 }
 
+/* ---------- Argentina vía BCR (gratis, sin clave) ---------- */
+function parseArNumber(s) {
+  // Formato argentino/brasileño: "515.000,00" -> 515000.00
+  return parseFloat(s.replace(/\./g, "").replace(",", "."));
+}
+
+async function fetchArgentina() {
+  const url = "https://www.cac.bcr.com.ar/es/precios-de-pizarra";
+  const res = await fetch(url, { headers: { "User-Agent": UA } });
+  if (!res.ok) throw new Error(`BCR HTTP ${res.status}`);
+  const html = await res.text();
+  const startIdx = html.indexOf("board board-soja");
+  if (startIdx === -1) throw new Error("BCR: no se encontró el bloque de soja");
+  const block = html.slice(startIdx, startIdx + 700);
+  const priceM = block.match(/<div class="price">\s*\$([\d.,]+)\s*<\/div>/);
+  const usdM = block.match(/US\$<\/strong>\s*([\d.,]+)/);
+  if (!priceM) throw new Error("BCR: no se encontró el precio de pizarra");
+  return {
+    pizarra_ars: parseArNumber(priceM[1]),
+    pizarra_usd: usdM ? parseArNumber(usdM[1]) : null,
+    matba: null,
+    campo: null,
+    politica: null
+  };
+}
+
+/* ---------- Brasil vía Notícias Agrícolas (indicador CEPEA/ESALQ, gratis) ---------- */
+async function fetchBrasil() {
+  const url = "https://www.noticiasagricolas.com.br/cotacoes/soja/soja-indicador-cepea-esalq-porto-paranagua";
+  const res = await fetch(url, { headers: { "User-Agent": UA } });
+  if (!res.ok) throw new Error(`Notícias Agrícolas HTTP ${res.status}`);
+  const html = await res.text();
+  const tblIdx = html.indexOf('class="cot-fisicas"');
+  if (tblIdx === -1) throw new Error("CEPEA: no se encontró la tabla");
+  const block = html.slice(tblIdx, tblIdx + 800);
+  const rowM = block.match(/<td>([\d/]+)<\/td>\s*<td>([\d,]+)<\/td>\s*<td>([+-][\d,]+)<\/td>/);
+  if (!rowM) throw new Error("CEPEA: no se pudo parsear la fila de datos");
+
+  let usdbrl = null;
+  try { usdbrl = (await fetchYahoo("BRL=X")).price; }
+  catch (e) { console.error("USD/BRL fetch falló:", e.message); }
+
+  return {
+    cepea_brl_saca: parseArNumber(rowM[2]),
+    cepea_var_pct: parseArNumber(rowM[3]),
+    premio: null,
+    campo: null,
+    usdbrl
+  };
+}
+
 /* ---------- main ---------- */
 (async () => {
   console.log("Recolectando snapshot de mercado de soya (fuentes gratuitas)…");
 
-  const [cbot, news] = await Promise.all([
-    safe("CBOT",     fetchCBOT),
-    safe("Noticias", fetchNews),
+  const [cbot, news, arg, bra] = await Promise.all([
+    safe("CBOT",      fetchCBOT),
+    safe("Noticias",  fetchNews),
+    safe("Argentina", fetchArgentina),
+    safe("Brasil",    fetchBrasil),
   ]);
 
-  // Secciones aún sin fuente gratuita confiable: quedan fuera del snapshot.
-  // El visor las muestra como "sin datos" sin romperse.
-  const snapshot = { actualizado: new Date().toISOString(), cbot, news };
+  // WASDE y balance quincenal siguen sin fuente gratuita confiable: quedan
+  // fuera del snapshot. El visor las muestra como "sin datos" sin romperse.
+  const snapshot = { actualizado: new Date().toISOString(), cbot, news, arg, bra };
 
   await db.ref("mercado-soya/latest").set(snapshot);
   const key = snapshot.actualizado.replace(/[.:]/g, "-");
