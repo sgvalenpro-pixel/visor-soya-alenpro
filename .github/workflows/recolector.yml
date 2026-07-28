@@ -2,7 +2,7 @@ name: Recolector mercado soya
 
 on:
   schedule:
-    - cron: '45 14 * * *'   # 09:45 hora Colombia
+    - cron: '0 14 * * *'    # 09:00 hora Colombia
     - cron: '0 21 * * *'    # 16:00 hora Colombia
   workflow_dispatch: {}      # permite correrlo a mano desde la pestaña Actions
 
