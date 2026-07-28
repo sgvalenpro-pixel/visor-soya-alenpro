@@ -83,6 +83,25 @@ async function fetchCBOT() {
 }
 
 /* ---------- Noticias vía RSS (gratis, sin clave) ---------- */
+/* Agri-Pulse publica en inglés; el visor debe mostrar todo en español,
+   así que cada titular/cuerpo se traduce vía MyMemory (API gratuita,
+   sin clave, límite ~5000 palabras/día anónimo — de sobra para 5 noticias
+   2 veces al día). Si la traducción falla, se deja el texto original en
+   inglés antes que romper la sección. */
+async function translateToEs(text) {
+  if (!text) return text;
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|es`;
+    const res = await fetch(url, { headers: { "User-Agent": UA } });
+    if (!res.ok) throw new Error(`MyMemory HTTP ${res.status}`);
+    const data = await res.json();
+    const translated = data && data.responseData && data.responseData.translatedText;
+    return translated ? decodeEntities(translated) : text;
+  } catch (e) {
+    console.error("Traducción falló:", e.message);
+    return text;
+  }
+}
 function decodeEntities(s) {
   return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
            .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'");
@@ -108,13 +127,19 @@ async function fetchNews() {
   if (!res.ok) throw new Error(`RSS HTTP ${res.status}`);
   const xml = await res.text();
   const blocks = xml.match(/<item>[\s\S]*?<\/item>/g) || [];
-  const items = blocks.slice(0, 5).map(block => ({
+  const rawItems = blocks.slice(0, 5).map(block => ({
     source: "Agri-Pulse",
     date: formatRssDate(extractTag(block, "pubDate")),
     headline: extractTag(block, "title"),
     body: extractTag(block, "description").slice(0, 220)
   })).filter(n => n.headline);
-  if (!items.length) throw new Error("RSS sin items");
+  if (!rawItems.length) throw new Error("RSS sin items");
+
+  const items = await Promise.all(rawItems.map(async n => ({
+    ...n,
+    headline: await translateToEs(n.headline),
+    body: await translateToEs(n.body)
+  })));
   return { items };
 }
 
@@ -145,15 +170,20 @@ async function fetchArgentina() {
 }
 
 /* ---------- Brasil vía Notícias Agrícolas (indicador CEPEA/ESALQ, gratis) ---------- */
-async function fetchBrasil() {
+/* El indicador diario puede venir sin signo cuando la variación es 0,00%, y la
+   maquetación de la página (ads, espacios) varía de una carga a otra, así que
+   la fila se busca en la tabla completa (hasta </table>) en vez de un recorte
+   fijo, y el signo +/- del porcentaje se trata como opcional. */
+async function fetchBrasilOnce() {
   const url = "https://www.noticiasagricolas.com.br/cotacoes/soja/soja-indicador-cepea-esalq-porto-paranagua";
   const res = await fetch(url, { headers: { "User-Agent": UA } });
   if (!res.ok) throw new Error(`Notícias Agrícolas HTTP ${res.status}`);
   const html = await res.text();
   const tblIdx = html.indexOf('class="cot-fisicas"');
   if (tblIdx === -1) throw new Error("CEPEA: no se encontró la tabla");
-  const block = html.slice(tblIdx, tblIdx + 800);
-  const rowM = block.match(/<td>([\d/]+)<\/td>\s*<td>([\d,]+)<\/td>\s*<td>([+-][\d,]+)<\/td>/);
+  const endIdx = html.indexOf("</table>", tblIdx);
+  const block = html.slice(tblIdx, endIdx === -1 ? tblIdx + 2000 : endIdx + 9);
+  const rowM = block.match(/<td>([\d/]+)<\/td>\s*<td>([\d,]+)<\/td>\s*<td>([+-]?[\d,]+)<\/td>/);
   if (!rowM) throw new Error("CEPEA: no se pudo parsear la fila de datos");
 
   let usdbrl = null;
@@ -167,6 +197,15 @@ async function fetchBrasil() {
     campo: null,
     usdbrl
   };
+}
+
+async function fetchBrasil() {
+  try {
+    return await fetchBrasilOnce();
+  } catch (e) {
+    console.error("Brasil (1er intento) falló:", e.message, "— reintentando…");
+    return await fetchBrasilOnce();
+  }
 }
 
 /* ---------- main ---------- */
