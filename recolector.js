@@ -183,7 +183,7 @@ async function fetchBrasilOnce() {
   if (tblIdx === -1) throw new Error("CEPEA: no se encontró la tabla");
   const endIdx = html.indexOf("</table>", tblIdx);
   const block = html.slice(tblIdx, endIdx === -1 ? tblIdx + 2000 : endIdx + 9);
-  const rowM = block.match(/<td>([\d/]+)<\/td>\s*<td>([\d,]+)<\/td>\s*<td>([+-]?[\d,]+)<\/td>/);
+  const rowM = block.match(/<td>\s*([\d/]+)\s*<\/td>\s*<td>\s*([\d,]+)\s*<\/td>\s*<td>\s*([+-]?[\d,]+)\s*<\/td>/);
   if (!rowM) throw new Error("CEPEA: no se pudo parsear la fila de datos");
 
   let usdbrl = null;

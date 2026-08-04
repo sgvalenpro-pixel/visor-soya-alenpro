@@ -96,7 +96,7 @@ Actions → Recolector mercado soya → Run workflow. Luego corre solo 2 veces a
 
 ## Horarios
 - `14:00 UTC` = 09:00 Colombia → apertura de CBOT
-- `19:30 UTC` = 14:30 Colombia → cierre de CBOT
+- `21:00 UTC` = 16:00 Colombia → cierre de CBOT
 
 Para cambiarlos, edita las líneas `cron` en `.github/workflows/recolector.yml`.
 
