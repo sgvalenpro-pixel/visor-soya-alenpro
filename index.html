@@ -208,10 +208,10 @@ async function loadTRM(){
   }catch(e1){
     try{
       // Fuente 2 (respaldo): dolarapi.com
-      const r2=await fetch("https://co.dolarapi.com/v1/dolares/oficial",{cache:"no-store"});
+      const r2=await fetch("https://co.dolarapi.com/v1/trm",{cache:"no-store"});
       if(!r2.ok) throw new Error("HTTP "+r2.status);
       const j2=await r2.json();
-      trm=parseFloat(j2.venta||j2.compra||j2.valor); fecha=j2.fechaActualizacion||null;
+      trm=parseFloat(j2.valor); fecha=j2.fechaActualizacion||null;
     }catch(e2){
       sectionError("trm","No se pudo obtener la TRM oficial. "+esc(e1.message));
       return;
